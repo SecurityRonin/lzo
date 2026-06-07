@@ -52,3 +52,18 @@ fn incompressible_long_literal_runs() {
 fn farmatch_m3_m4_distances() {
     check("farmatch");
 }
+
+// Real-content regression vectors: the project's own README (natural prose) and
+// `src/lib.rs` (real Rust source), compressed by reference liblzo2 `lzo1x_999`
+// — the max-compression variant, which exercises the long-distance M3/M4 and
+// length-extension paths far more than the hand-built `lzo1x_1` vectors above.
+// Regenerate with `validation/lzo_compress` (see docs/validation.md).
+#[test]
+fn real_prose_lzo1x_999() {
+    check("readme");
+}
+
+#[test]
+fn real_source_code_lzo1x_999() {
+    check("libsrc");
+}

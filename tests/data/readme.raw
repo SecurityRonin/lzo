@@ -40,8 +40,6 @@ It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15
 
 ## Correctness
 
-Every release is round-trip tested against vectors produced by the **reference C `liblzo2`** — `lzo` decodes, liblzo2 encoded, so the two share no code and a mismatch can only mean `lzo` is wrong. The vectors cover literals, the zero-byte length extension, M1–M4 matches, overlapping copies, and the end-of-stream marker, plus malformed-input tests asserting no panic on arbitrary bytes.
-
-Beyond the committed vectors, `lzo` has decoded **32.4 MB of real-world data** — a 2.5 MB dictionary, real Mach-O binaries, a 6 MB photo, an already-gzipped blob, real source and prose — compressed by all three liblzo2 variants (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`), every block byte-exact. Full methodology, results, and scope limits: **[docs/validation.md](docs/validation.md)**.
+Every release is round-trip tested against vectors produced by the **reference C `liblzo2` `lzo1x_1_compress`** (covering literals, the zero-byte length extension, M1–M4 matches, overlapping copies, and the end-of-stream marker), plus malformed-input tests asserting no panic on arbitrary bytes.
 
 [Privacy Policy](https://securityronin.github.io/lzo/privacy/) · [Terms of Service](https://securityronin.github.io/lzo/terms/) · © 2026 Security Ronin Ltd
