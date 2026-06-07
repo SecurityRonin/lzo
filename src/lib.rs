@@ -5,8 +5,9 @@
 //! no container header or stored output size. The output length must be known
 //! (or upper-bounded) by the caller, exactly like the C `lzo1x_decompress_safe`.
 //!
-//! This is the GPL-free, MIT-licensed alternative to the existing GPL Rust LZO
-//! ports, with `#![forbid(unsafe_code)]` and zero dependencies.
+//! Built decoder-first for untrusted input: `#![forbid(unsafe_code)]`, zero
+//! dependencies, and fuzz-hardened, so a malformed or crafted block returns a
+//! typed [`Error`] rather than reading out of bounds or panicking.
 //!
 //! ```
 //! // "hello, lzo world!" compressed by liblzo2's lzo1x_1.

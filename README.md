@@ -6,7 +6,7 @@
 [![CI](https://github.com/SecurityRonin/lzo/actions/workflows/ci.yml/badge.svg)](https://github.com/SecurityRonin/lzo/actions/workflows/ci.yml)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2.svg)](https://github.com/sponsors/h4x0r)
 
-**The GPL-free, safe, `no_std` pure-Rust LZO1X decompressor.** Decode `lzo1x` data — from `lzop` files, the Linux kernel/initramfs, btrfs, or any tool built on liblzo2 — with zero C, zero dependencies, and `#![forbid(unsafe_code)]`.
+**The safe, `no_std`, zero-dependency pure-Rust LZO1X decompressor — hardened and fuzzed against malicious input.** Decode `lzo1x` data — from `lzop` files, the Linux kernel/initramfs, btrfs, or any tool built on liblzo2 — with zero C, zero dependencies, and `#![forbid(unsafe_code)]`.
 
 ```rust
 // "hello, lzo world!" as a raw LZO1X block (from liblzo2's lzo1x_1).
@@ -20,24 +20,14 @@ That's it: hand it a raw block and a big-enough buffer, get the bytes back.
 
 ## Why this crate
 
-Pure-Rust LZO crates already exist, but none is a permissively-licensed, dependency-free, *unsafe-free* decoder:
+LZO turns up in forensics and recovery — `lzop` archives, kernel/initramfs images, btrfs, anything built on liblzo2 — and there the bytes are often **untrusted, truncated, or deliberately malformed**. `lzo` is built decoder-first around the property that matters most there: **it cannot be made to misbehave on hostile input.**
 
-- [`rust-lzo`](https://crates.io/crates/rust-lzo) and [`lzo1x`](https://crates.io/crates/lzo1x) are **GPL-2.0** — they can't be linked into MIT/Apache code.
-- [`lzokay`](https://crates.io/crates/lzokay) is MIT and pure-Rust, but uses `unsafe` and pulls a dependency (`zerocopy`), and is a full compress+decompress codec.
-- C `liblzo2` (and `lzo-sys`) means a C dependency.
+- **Safe by construction** — `#![forbid(unsafe_code)]`, so every read is bounds-checked by the compiler. A corrupt or crafted block returns a typed [`Error`] — it can never read out of bounds, loop forever, or corrupt memory.
+- **Fuzzed hard before release** — millions of arbitrary and mutation-fuzzed inputs through a libFuzzer target and a differential harness; it panics on none. Cross-validated byte-for-byte against the independent `rust-lzo` decoder on real data and across 3M mutated inputs with zero divergence (see [Correctness](#correctness)).
+- **Zero dependencies, `no_std`** — the core `decompress_into` needs no allocator and pulls in nothing to audit but this crate.
+- **MIT-licensed** — drops cleanly into permissively-licensed projects.
 
-`lzo` is the gap: an **MIT, zero-dependency, `#![forbid(unsafe_code)]`** decompressor.
-
-| | C `liblzo2` | `rust-lzo` / `lzo1x` | `lzokay` | **`lzo`** |
-|---|---|---|---|---|
-| Language | C | pure Rust | pure Rust | pure Rust |
-| `unsafe` | — | uses `unsafe` | uses `unsafe` | **`#![forbid(unsafe_code)]`** |
-| License | GPL / commercial | GPL-2.0 | MIT | **MIT** |
-| Dependencies | — | varies | `zerocopy` | **zero** |
-| `no_std` | — | varies | ✅ | ✅ |
-| Scope | both | decode | both | decode-only |
-
-It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`) — they share one decompressor. Hardened against malformed input: bounds-checked, never panics, returns a typed [`Error`]. Cross-validated byte-for-byte against the independent `rust-lzo` decoder (see [Correctness](#correctness)).
+It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`) — they share one decompressor. (Other Rust LZO crates exist — [`rust-lzo`](https://crates.io/crates/rust-lzo), [`lzo1x`](https://crates.io/crates/lzo1x), [`lzokay`](https://crates.io/crates/lzokay) — with different trade-offs in licence, dependencies, and `unsafe`; `lzo`'s niche is the safe, zero-dependency decoder.)
 
 ## Scope
 
