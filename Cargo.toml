@@ -24,3 +24,8 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+# The `x & MASK == 0` form mirrors the LZO1X spec's instruction decoding and is
+# clearer here than `trailing_zeros()`.
+verbose_bit_mask = "allow"
+# Error variants are self-describing via `Error`'s docs/Display.
+missing_errors_doc = "allow"

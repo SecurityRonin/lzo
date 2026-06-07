@@ -15,8 +15,11 @@ fn vector(name: &str) -> (Vec<u8>, Vec<u8>) {
 
 fn check(name: &str) {
     let (raw, lzo) = vector(name);
-    let out = lzo::decompress(&lzo, raw.len())
-        .unwrap_or_else(|e| panic!("decompress {name}: {e}"));
+    // Use the core (allocation-free) API so this builds with --no-default-features.
+    let mut out = vec![0u8; raw.len()];
+    let n =
+        lzo::decompress_into(&lzo, &mut out).unwrap_or_else(|e| panic!("decompress {name}: {e}"));
+    out.truncate(n);
     assert_eq!(out, raw, "{name} round-trip mismatch");
 }
 
