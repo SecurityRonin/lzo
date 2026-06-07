@@ -12,6 +12,9 @@ documentation = "https://docs.rs/lzo"
 authors = ["Albert Hui"]
 keywords = ["lzo", "lzo1x", "decompression", "no-std", "forensics"]
 categories = ["compression", "no-std"]
+# The differential oracle pulls a GPL-2.0 dev dependency; keep it out of the
+# published, MIT-licensed tarball entirely.
+exclude = ["validation/lzodiff"]
 
 [features]
 default = ["alloc"]

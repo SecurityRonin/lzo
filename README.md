@@ -20,18 +20,24 @@ That's it: hand it a raw block and a big-enough buffer, get the bytes back.
 
 ## Why this crate
 
-Pure-Rust LZO ports already exist — but the mature ones (`rust-lzo`, `lzo1x`) are **GPL-2.0**, which can't be linked into an MIT/Apache project, and the MIT alternatives wrap C or are early-stage. `lzo` fills that gap:
+Pure-Rust LZO crates already exist, but none is a permissively-licensed, dependency-free, *unsafe-free* decoder:
 
-| | C `liblzo2` | other Rust ports | **`lzo`** |
-|---|---|---|---|
-| Language / linkage | C | mixed | pure Rust, no C |
-| `unsafe` | — | varies | **`#![forbid(unsafe_code)]`** |
-| License | GPL/commercial | mostly GPL | **MIT** |
-| `no_std` | — | varies | ✅ (`decompress_into`) |
-| Dependencies | — | varies | **zero** |
-| Validated against liblzo2 | — | varies | ✅ round-trip vectors |
+- [`rust-lzo`](https://crates.io/crates/rust-lzo) and [`lzo1x`](https://crates.io/crates/lzo1x) are **GPL-2.0** — they can't be linked into MIT/Apache code.
+- [`lzokay`](https://crates.io/crates/lzokay) is MIT and pure-Rust, but uses `unsafe` and pulls a dependency (`zerocopy`), and is a full compress+decompress codec.
+- C `liblzo2` (and `lzo-sys`) means a C dependency.
 
-It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`) — they share one decompressor. Hardened against malformed input: bounds-checked, never panics, returns a typed [`Error`].
+`lzo` is the gap: an **MIT, zero-dependency, `#![forbid(unsafe_code)]`** decompressor.
+
+| | C `liblzo2` | `rust-lzo` / `lzo1x` | `lzokay` | **`lzo`** |
+|---|---|---|---|---|
+| Language | C | pure Rust | pure Rust | pure Rust |
+| `unsafe` | — | uses `unsafe` | uses `unsafe` | **`#![forbid(unsafe_code)]`** |
+| License | GPL / commercial | GPL-2.0 | MIT | **MIT** |
+| Dependencies | — | varies | `zerocopy` | **zero** |
+| `no_std` | — | varies | ✅ | ✅ |
+| Scope | both | decode | both | decode-only |
+
+It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`) — they share one decompressor. Hardened against malformed input: bounds-checked, never panics, returns a typed [`Error`]. Cross-validated byte-for-byte against the independent `rust-lzo` decoder (see [Correctness](#correctness)).
 
 ## Scope
 
@@ -42,6 +48,8 @@ It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15
 
 Every release is round-trip tested against vectors produced by the **reference C `liblzo2`** — `lzo` decodes, liblzo2 encoded, so the two share no code and a mismatch can only mean `lzo` is wrong. The vectors cover literals, the zero-byte length extension, M1–M4 matches, overlapping copies, and the end-of-stream marker, plus malformed-input tests asserting no panic on arbitrary bytes.
 
-Beyond the committed vectors, `lzo` has decoded **32.4 MB of real-world data** — a 2.5 MB dictionary, real Mach-O binaries, a 6 MB photo, an already-gzipped blob, real source and prose — compressed by all three liblzo2 variants (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`), every block byte-exact. Full methodology, results, and scope limits: **[docs/validation.md](docs/validation.md)**.
+Beyond the committed vectors, `lzo` has decoded **32.4 MB of real-world data** — a 2.5 MB dictionary, real Mach-O binaries, a 6 MB photo, an already-gzipped blob, real source and prose — compressed by all three liblzo2 variants (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`), every block byte-exact.
+
+As a second, lineage-independent check, `lzo`'s output was compared against [`rust-lzo`](https://crates.io/crates/rust-lzo) (a separate GPL decoder converted from Linux's `lzo1x_decompress_safe`, used only as a local oracle — never a dependency): identical on all 27 real blocks, and across **3,000,000** mutation-fuzz inputs there were **zero** output divergences (903k accepted by both decoders) and zero accept/reject splits. Full methodology, results, and scope limits: **[docs/validation.md](docs/validation.md)**.
 
 [Privacy Policy](https://securityronin.github.io/lzo/privacy/) · [Terms of Service](https://securityronin.github.io/lzo/terms/) · © 2026 Security Ronin Ltd
