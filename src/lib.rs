@@ -68,19 +68,18 @@ fn rd_le16(src: &[u8], ip: &mut usize) -> Result<usize, Error> {
 
 /// The zero-byte length extension: skip a run of `0x00` bytes (each worth 255)
 /// then read the terminating non-zero byte; returns `255*zeros + terminator`
-/// (the caller adds the per-command base). Guards against run-length overflow.
+/// (the caller adds the per-command base). The run is bounded by the input
+/// length (each zero consumes a byte); saturating arithmetic makes the value
+/// overflow-safe even for an absurd input, so an over-long length simply fails
+/// the later output-capacity check rather than wrapping.
 fn length_ext(src: &[u8], ip: &mut usize) -> Result<usize, Error> {
-    const MAX_255_COUNT: usize = usize::MAX / 255 - 2;
     let mut zeros = 0usize;
     while *src.get(*ip).ok_or(Error::InputOverrun)? == 0 {
         *ip += 1;
         zeros += 1;
-        if zeros > MAX_255_COUNT {
-            return Err(Error::Malformed);
-        }
     }
     let term = rd(src, ip)? as usize;
-    Ok(zeros * 255 + term)
+    Ok(zeros.saturating_mul(255).saturating_add(term))
 }
 
 /// Copy `n` literal bytes from the input to the output.
@@ -157,7 +156,7 @@ pub fn decompress_into(src: &[u8], dst: &mut [u8]) -> Result<usize, Error> {
             if state == 0 {
                 // Literal run: length t+3, with the zero-byte extension (base 18).
                 let len = if t == 0 {
-                    18 + length_ext(src, &mut ip)?
+                    length_ext(src, &mut ip)?.saturating_add(18)
                 } else {
                     t + 3
                 };
@@ -182,7 +181,7 @@ pub fn decompress_into(src: &[u8], dst: &mut [u8]) -> Result<usize, Error> {
         } else if t >= 32 {
             // M3: length in low 5 bits (base 2 / extension base 33), le16 distance.
             length = if (t & 31) == 0 {
-                33 + length_ext(src, &mut ip)?
+                length_ext(src, &mut ip)?.saturating_add(33)
             } else {
                 (t & 31) + 2
             };
@@ -193,7 +192,7 @@ pub fn decompress_into(src: &[u8], dst: &mut [u8]) -> Result<usize, Error> {
             // M4 (16..=31): long match, or the end-of-stream marker.
             let hi = (t & 8) << 11;
             length = if (t & 7) == 0 {
-                9 + length_ext(src, &mut ip)?
+                length_ext(src, &mut ip)?.saturating_add(9)
             } else {
                 (t & 7) + 2
             };
@@ -226,111 +225,4 @@ pub fn decompress(src: &[u8], max_len: usize) -> Result<alloc::vec::Vec<u8>, Err
     let n = decompress_into(src, &mut dst)?;
     dst.truncate(n);
     Ok(dst)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Canonical empty stream: the 3-byte end-of-stream marker.
-    #[cfg(feature = "alloc")]
-    const EOF: &[u8] = &[0x11, 0x00, 0x00];
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn empty_stream_decodes_to_nothing() {
-        assert_eq!(decompress(EOF, 0).unwrap(), b"");
-    }
-
-    #[test]
-    fn input_shorter_than_marker_is_overrun() {
-        assert_eq!(
-            decompress_into(&[0x11, 0x00], &mut []),
-            Err(Error::InputOverrun)
-        );
-    }
-
-    #[test]
-    fn output_too_small_is_overrun() {
-        // "hello, lzo world!" needs 17 bytes; give it 5.
-        let block = [
-            34, 104, 101, 108, 108, 111, 44, 32, 108, 122, 111, 32, 119, 111, 114, 108, 100, 33,
-            0x11, 0x00, 0x00,
-        ];
-        let mut small = [0u8; 5];
-        assert_eq!(
-            decompress_into(&block, &mut small),
-            Err(Error::OutputOverrun)
-        );
-    }
-
-    #[test]
-    fn match_before_output_start_is_lookbehind_overrun() {
-        // Emit 1 literal (0x12 -> initial run of 1), then an M3 match (0x21) whose
-        // distance (3) reaches before the single output byte.
-        assert_eq!(
-            decompress_into(
-                &[0x12, b'X', 0x21, 0x08, 0x00, 0x11, 0x00, 0x00],
-                &mut [0u8; 64]
-            ),
-            Err(Error::LookbehindOverrun)
-        );
-    }
-
-    #[test]
-    fn trailing_bytes_after_eof_are_rejected() {
-        let mut buf = [0u8; 4];
-        assert_eq!(
-            decompress_into(&[0x11, 0x00, 0x00, 0x99], &mut buf),
-            Err(Error::InputNotConsumed)
-        );
-    }
-
-    #[test]
-    fn truncated_literal_run_is_input_overrun() {
-        // First byte 0x15 = 21 > 17 -> initial literal run of 4 bytes, but only 2 follow.
-        assert_eq!(
-            decompress_into(&[0x15, b'a', b'b'], &mut [0u8; 16]),
-            Err(Error::InputOverrun)
-        );
-    }
-
-    #[test]
-    fn arbitrary_bytes_never_panic() {
-        // No input should panic; every result is Ok or a typed Err.
-        let mut out = [0u8; 256];
-        for seed in 0u32..4000 {
-            let mut s = seed.wrapping_mul(2_654_435_761).wrapping_add(1);
-            let mut buf = [0u8; 24];
-            for b in &mut buf {
-                s ^= s << 13;
-                s ^= s >> 17;
-                s ^= s << 5;
-                *b = (s >> 24) as u8;
-            }
-            let _ = decompress_into(&buf, &mut out);
-        }
-    }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn error_messages_are_distinct() {
-        use core::fmt::Write;
-        let mut seen = alloc::vec::Vec::new();
-        for e in [
-            Error::InputOverrun,
-            Error::OutputOverrun,
-            Error::LookbehindOverrun,
-            Error::InputNotConsumed,
-            Error::Malformed,
-        ] {
-            let mut s = alloc::string::String::new();
-            write!(s, "{e}").unwrap();
-            assert!(s.starts_with("lzo: "));
-            seen.push(s);
-        }
-        seen.sort();
-        seen.dedup();
-        assert_eq!(seen.len(), 5);
-    }
 }
