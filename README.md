@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/lzo.svg)](https://crates.io/crates/lzo)
 [![Docs.rs](https://docs.rs/lzo/badge.svg)](https://docs.rs/lzo)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/SecurityRonin/lzo/actions/workflows/ci.yml/badge.svg)](https://github.com/SecurityRonin/lzo/actions/workflows/ci.yml)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2.svg)](https://github.com/sponsors/h4x0r)
 
@@ -25,7 +25,7 @@ LZO turns up in forensics and recovery — `lzop` archives, kernel/initramfs ima
 - **Safe by construction** — `#![forbid(unsafe_code)]`, so every read is bounds-checked by the compiler. A corrupt or crafted block returns a typed [`Error`] — it can never read out of bounds, loop forever, or corrupt memory.
 - **Fuzzed hard before release** — millions of arbitrary and mutation-fuzzed inputs through a libFuzzer target and a differential harness; it panics on none. Cross-validated byte-for-byte against the independent `rust-lzo` decoder on real data and across 3M mutated inputs with zero divergence (see [Correctness](#correctness)).
 - **Zero dependencies, `no_std`** — the core `decompress_into` needs no allocator and pulls in nothing to audit but this crate.
-- **MIT-licensed** — drops cleanly into permissively-licensed projects.
+- **Apache-2.0-licensed** — drops cleanly into permissively-licensed projects.
 
 It decodes streams from every `lzo1x` compressor variant (`lzo1x_1`, `lzo1x_1_15`, `lzo1x_999`) — they share one decompressor. (Other Rust LZO crates exist — [`rust-lzo`](https://crates.io/crates/rust-lzo), [`lzo1x`](https://crates.io/crates/lzo1x), [`lzokay`](https://crates.io/crates/lzokay) — with different trade-offs in licence, dependencies, and `unsafe`; `lzo`'s niche is the safe, zero-dependency decoder.)
 
