@@ -46,7 +46,7 @@ The reference encoder was run over a corpus of **real files** — not synthetic
 fixtures — and every resulting block was decoded by `lzo` and compared byte-for-
 byte. This run is documented here rather than committed to CI because the source
 files (system binaries, a system photo) are not redistributable; it is fully
-reproducible with the harness in [`validation/`](../validation) against any local
+reproducible with the harness in [`validation/`](https://github.com/SecurityRonin/lzo/tree/main/validation) against any local
 files.
 
 **Environment:** liblzo2 2.10 (Homebrew), macOS (arm64), `lzo` 0.1.0.
