@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2](https://github.com/SecurityRonin/lzo/compare/lzo-v0.1.1...lzo-v0.1.2) - 2026-07-25
+
+### Documentation
+
+- reverse-write PRD + ADRs; mkdocs excludes governance docs (fleet standard)
+- complete MkDocs site (mkdocs.yml + deploy workflow)
+- use verbatim Apache-2.0 license text
+
+### Fixed
+
+- *(vet)* declare own crates first-party so version bumps don't break supply-chain audit
+- *(ci)* force nightly for cargo fuzz via +nightly (toml override)
+
 ## [0.1.1] — 2026-06-07
 
 No API or behaviour changes — `0.1.1` is documentation, validation, and metadata.
