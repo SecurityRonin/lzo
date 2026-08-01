@@ -3,6 +3,8 @@
 //! original, `<name>.lzo` the compressed block). Each block must decompress to
 //! exactly its original.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use std::path::Path;
 
 const DATA: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data");

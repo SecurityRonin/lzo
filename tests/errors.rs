@@ -2,6 +2,8 @@
 //! malformed, truncated, or crafted input — so these double as e2e coverage of
 //! the decoder's guards, and assert it never panics on hostile bytes.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use lzo::{decompress_into, Error};
 
 // "hello, lzo world!" compressed by liblzo2's lzo1x_1, then the EOF marker.
